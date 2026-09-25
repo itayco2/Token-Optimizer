@@ -83,6 +83,7 @@ export function agentStats(agent) {
   const models = {};
   const called = new Set();
   const keys = new Set();
+  const toolKeys = new Set();
   let calls = 0, oneCall = 0, unpriced = 0;
   for (const t of agent.turns) {
     const u = t.usage;
@@ -92,7 +93,11 @@ export function agentStats(agent) {
     if (t.model && !priceFor(t.model).known && t.model !== '<synthetic>') unpriced++;
     calls += t.calls.length;
     if (t.calls.length === 1) oneCall++;
-    for (const c of t.calls) { called.add(c.name); if (c.key) keys.add(c.key); }
+    for (const c of t.calls) {
+      called.add(c.name);
+      if (c.key) { keys.add(c.key); toolKeys.add(c.key); }
+      for (const k of c.shellKeys || []) keys.add(k);
+    }
   }
   const read = tokens.uncached + tokens.cacheRead + tokens.cacheWrite;
   const first = agent.turns.length ? ctxOf(agent.turns[0].usage) : 0;
@@ -110,6 +115,7 @@ export function agentStats(agent) {
     oneCall,
     called,
     keys,
+    toolKeys,
     time: agent.time,
     toolErrors: agent.toolErrors,
     minutes: agent.start !== null && agent.end !== null ? (agent.end - agent.start) / 60000 : 0,
@@ -124,6 +130,7 @@ export function runStats(run) {
   const models = {};
   const time = {};
   const reads = {};
+  const toolReads = {};
   let fixed = 0, turns = 0, calls = 0, oneCall = 0;
   const toolErrors = { total: 0, unknownTool: 0 };
   for (const a of agents) {
@@ -136,13 +143,18 @@ export function runStats(run) {
     for (const [m, n] of Object.entries(a.models)) models[m] = (models[m] || 0) + n;
     for (const [k, v] of Object.entries(a.time)) time[k] = (time[k] || 0) + v;
     for (const k of a.keys) reads[k] = (reads[k] || 0) + 1;
+    for (const k of a.toolKeys) toolReads[k] = (toolReads[k] || 0) + 1;
     toolErrors.total += a.toolErrors.total;
     toolErrors.unknownTool += a.toolErrors.unknownTool;
   }
   const read = tokens.uncached + tokens.cacheRead + tokens.cacheWrite;
-  const readCounts = Object.values(reads);
-  const totalReads = readCounts.reduce((x, y) => x + y, 0);
-  const dupReads = readCounts.reduce((x, n) => x + (n > 1 ? n - 1 : 0), 0);
+  const dupOf = counts => {
+    const n = Object.values(counts);
+    const total = n.reduce((x, y) => x + y, 0);
+    const dup = n.reduce((x, c) => x + (c > 1 ? c - 1 : 0), 0);
+    return { reads: total, dup, share: share(dup, total) };
+  };
+  const toolOnly = dupOf(toolReads);
   const modelTurns = Object.values(models).reduce((x, y) => x + y, 0);
   const opusTurns = Object.entries(models).filter(([m]) => /opus/i.test(m)).reduce((x, [, n]) => x + n, 0);
   return {
@@ -166,7 +178,8 @@ export function runStats(run) {
     cost,
     costTotal: sum(cost),
     rereadCostShare: share(cost.cacheRead, sum(cost)),
-    dup: { reads: totalReads, dup: dupReads, share: share(dupReads, totalReads) },
+    // Duplicate reads, counting files printed by shell commands too; toolOnly matches the prototype.
+    dup: { ...dupOf(reads), toolOnlyShare: toolOnly.share },
     models,
     opusShare: share(opusTurns, modelTurns),
     time,
@@ -296,6 +309,7 @@ export function summarize(parsedRuns) {
     fixedShareMedianRun: median(runs.map(r => r.fixedShare)),
     rereadCostShareMedianRun: median(runs.map(r => r.rereadCostShare)),
     dupShareMedianRun: median(runs.map(r => r.dup.share)),
+    dupToolOnlyShareMedianRun: median(runs.map(r => r.dup.toolOnlyShare)),
     runsDup30: runs.filter(r => r.dup.share >= 0.3).length,
     runsOpus95: runs.filter(r => r.opusShare >= 0.95).length,
     models,

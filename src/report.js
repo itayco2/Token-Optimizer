@@ -61,7 +61,7 @@ export function markdown(s, opts = {}) {
     `- **Tokens read:** ${fmtTokens(s.read)}. **Written:** ${fmtTokens(s.written)} (${fmtPct(s.written / Math.max(1, s.read), 3)} of read).`,
     `- **Fixed start of each turn:** ${fmtPct(s.fixedShare)} of all tokens read (median run ${fmtPct(s.fixedShareMedianRun)}). This is what every agent loads before its task and re-reads on every turn.`,
     `- **Re-reading cached context:** ${fmtPct(s.rereadCostShareMedianRun)} of price-weighted cost (median run).`,
-    `- **Same file or URL read by 2+ agents in one run:** median ${fmtPct(s.dupShareMedianRun)} of reads; ${s.runsDup30} of ${s.runCount} runs at 30% or more.`,
+    `- **Same file or URL read by 2+ agents in one run:** median ${fmtPct(s.dupShareMedianRun)} of reads, counting files printed by shell commands (${fmtPct(s.dupToolOnlyShareMedianRun)} counting only Read, WebFetch, Grep and Glob); ${s.runsDup30} of ${s.runCount} runs at 30% or more.`,
     `- **API-price equivalent:** about ${fmtUsd(s.costTotal)} at list prices (${PRICES_AS_OF}). On a subscription this is a comparison unit, not a bill.`,
     `- **Lean roles would save:** about ${fmtRange(s.lean.lowShare, s.lean.highShare, fmtPct)} of tokens read (${fmtRange(s.lean.low, s.lean.high, fmtTokens)}). See "What you could cut".`,
   ].join('\n'));
@@ -146,7 +146,7 @@ export function json(s, opts = {}) {
       ...r,
       project: showPaths ? r.project : undefined,
       dir: showPaths ? r.dir : undefined,
-      agents: r.agents.map(a => ({ ...a, called: [...a.called], keys: undefined })),
+      agents: r.agents.map(a => ({ ...a, called: [...a.called], keys: undefined, toolKeys: undefined })),
     })),
   };
   return JSON.stringify(clean, null, 2) + '\n';

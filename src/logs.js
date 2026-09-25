@@ -76,6 +76,64 @@ export function readKey(name, input) {
   return null;
 }
 
+// Commands that print a file into the agent's context. Agents often read with Bash instead of
+// Read (cat -n, sed -n 'a,bp', head), so X-ray counts those reads too.
+const SHELL_READERS = new Set(['cat', 'head', 'tail', 'nl', 'sed', 'bat', 'less', 'more', 'type', 'get-content', 'gc']);
+// Flags that take a value, per reader, so the value isn't mistaken for a file.
+const VALUE_FLAGS = { head: ['-n', '-c'], tail: ['-n', '-c'], sed: ['-e', '-f'], 'get-content': ['-totalcount', '-tail', '-head', '-encoding'] };
+
+// Split one shell segment into words, honouring simple quotes. Returns null on anything unusual.
+function shellWords(segment) {
+  const words = [];
+  const re = /"((?:[^"\\]|\\.)*)"|'([^']*)'|(\S+)/g;
+  let m;
+  while ((m = re.exec(segment))) words.push(m[1] ?? m[2] ?? m[3]);
+  return words;
+}
+
+const isAbsolute = p => /^([a-zA-Z]:[\\/]|[\\/]|~)/.test(p);
+const normPath = p => {
+  const s = p.split('\\').join('/');
+  const drive = /^[a-zA-Z]:/.test(s) ? s.slice(0, 2) : '';
+  return (drive + path.posix.normalize(s.slice(drive.length))).toLowerCase();
+};
+
+// Files a Bash or PowerShell command prints, as read keys ("file:<absolute path, lowercased>").
+// Deliberately conservative: only plain reader commands with literal file names count.
+export function shellReadKeys(command, cwd = '') {
+  const keys = [];
+  let dir = cwd;
+  for (const segment of String(command || '').split(/&&|\|\||;|\||\n/)) {
+    const words = shellWords(segment.trim());
+    while (words.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[0])) words.shift();
+    if (!words.length) continue;
+    const prog = words[0].split(/[\\/]/).pop().toLowerCase();
+    if (prog === 'cd' && words[1] && !words[1].startsWith('-')) {
+      dir = isAbsolute(words[1]) ? words[1] : `${dir}/${words[1]}`;
+      continue;
+    }
+    if (!SHELL_READERS.has(prog)) continue;
+    const valueFlags = VALUE_FLAGS[prog] || [];
+    if (prog === 'sed' && words.some(w => /^-i/.test(w) || w === '--in-place')) continue;
+    let scriptSkipped = prog !== 'sed';
+    for (let i = 1; i < words.length; i++) {
+      const w = words[i];
+      if (/^[0-9&]*(>>?|<)$/.test(w)) { i++; continue; }
+      if (/^[0-9&]*(>>?|<)/.test(w)) continue;
+      if (w.startsWith('-')) {
+        if (prog === 'sed' && (w === '-e' || w === '-f')) scriptSkipped = true;
+        if (valueFlags.includes(w.toLowerCase())) i++;
+        continue;
+      }
+      if (!scriptSkipped) { scriptSkipped = true; continue; }
+      if (/[*?[\]$`]/.test(w)) continue;
+      const abs = isAbsolute(w) ? w : dir ? `${dir}/${w}` : null;
+      if (abs) keys.push('file:' + normPath(abs));
+    }
+  }
+  return [...new Set(keys)];
+}
+
 function usageOf(u) {
   u = u || {};
   const c = u.cache_creation || {};
@@ -199,7 +257,8 @@ export function parseAgent(text, meta = {}, id = '') {
       if (!turn.model && m.model) turn.model = m.model;
       for (const c of Array.isArray(m.content) ? m.content : []) {
         if (!c || c.type !== 'tool_use') continue;
-        turn.calls.push({ name: c.name, key: readKey(c.name, c.input) });
+        const shell = (c.name === 'Bash' || c.name === 'PowerShell') && c.input ? shellReadKeys(c.input.command, e.cwd) : [];
+        turn.calls.push({ name: c.name, key: readKey(c.name, c.input), shellKeys: shell });
         toolNames.set(c.id, c.name);
       }
     } else if (e.type === 'user' && m && Array.isArray(m.content)) {

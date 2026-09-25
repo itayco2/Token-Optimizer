@@ -101,7 +101,7 @@ test('unloggedFloor is the median unlogged start of agents that already have an 
 
 test('runStats: duplicate reads across agents, Opus share, fixed share', () => {
   const r = runStats(legacyRun());
-  assert.deepEqual(r.dup, { reads: 3, dup: 1, share: 1 / 3 });
+  assert.deepEqual(r.dup, { reads: 3, dup: 1, share: 1 / 3, toolOnlyShare: 1 / 3 });
   assert.equal(r.opusShare, 3 / 4);
   assert.equal(r.read, A.read + 4003);
   assert.equal(r.fixed, A.fixed + 4003);
@@ -147,4 +147,16 @@ test('compare: group B relative to group A', () => {
   const read = rows.find(r => r.name === 'Tokens read per run');
   close(read.change, (b.read / 2 - a.read) / a.read);
   assert.equal(rows.find(r => r.name === 'Runs').b, 2);
+});
+
+test('runStats: a Read and a shell cat of the same file by two agents is a duplicate read', () => {
+  const agent = (id, name, input) => parseAgent(JSON.stringify({
+    type: 'assistant', cwd: '/repo', timestamp: '2026-09-01T10:00:00Z',
+    message: { id, usage: { input_tokens: 1 }, content: [{ type: 'tool_use', id: id + 't', name, input }] },
+  }), {});
+  const r = runStats({
+    kind: 'workflow', id: 'w', project: 'p', dir: '/x', versions: [], skipped: {}, start: null, end: null,
+    agents: [agent('a', 'Read', { file_path: '/repo/src/cart.js' }), agent('b', 'Bash', { command: 'cat -n src/cart.js' })],
+  });
+  assert.deepEqual(r.dup, { reads: 2, dup: 1, share: 0.5, toolOnlyShare: 0 });
 });

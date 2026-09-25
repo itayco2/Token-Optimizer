@@ -54,6 +54,8 @@ Same method as `timeuse.js`. X-ray walks each agent's timestamped lines in order
 
 Same keys as `wfall.js`: a file path (lowercased, `\` → `/`), a URL (without query, fragment or trailing slash), or a Grep or Glob pattern with its path. Each agent contributes each key once. For each key read by n agents, n − 1 reads are duplicates. The run's duplicate share = duplicates ÷ all reads.
 
+**Reads through the shell count too.** Agents often print files with Bash instead of the Read tool (`cat -n`, `sed -n '10,40p'`, `head`). In the first proof run, reviewers read every file that way, and the tool-only count saw no reads at all. X-ray also takes file keys from plain reader commands in Bash or PowerShell: `cat`, `head`, `tail`, `nl`, `sed` (not `sed -i`), `bat`, `less`, `more`, `type`, `Get-Content`. Relative paths resolve against the line's working directory, following `cd`. Globs, variables and `grep` don't count. The report also gives the tool-only share, the prototype's definition, for comparison.
+
 ## Models
 
 The Opus share of a run = turns on an Opus model ÷ all turns. The prototype counted transcript lines instead of turns, so on the test run it reads 40% where X-ray reads 50%.

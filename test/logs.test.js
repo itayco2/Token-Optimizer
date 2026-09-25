@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import test from 'node:test';
-import { findRuns, parseAgent, readKey, readRun, runFromDir, strLen } from '../src/logs.js';
+import { findRuns, parseAgent, readKey, readRun, runFromDir, shellReadKeys, strLen } from '../src/logs.js';
 import { A, AGENT_A, AGENT_BROKEN, FIXTURES, META_A, WF_PROBE } from './helpers.js';
 
 test('parseAgent: one turn per message id, output from its last line', () => {
@@ -120,4 +120,39 @@ test('readRun on a real 2.1.282 workflow run', () => {
   assert.equal(lean.firstTurn.parts.skillListing, 0);
   assert.equal(lean.firstTurn.parts.deferredTools, 0);
   assert.ok(run.agents.every(a => a.turns.some(t => t.calls.some(c => c.name === 'StructuredOutput'))), 'every agent returned structured output');
+});
+
+test('shellReadKeys: plain reader commands, resolved against the working directory', () => {
+  const k = (cmd, cwd = '/repo') => shellReadKeys(cmd, cwd);
+  assert.deepEqual(k('cat src/a.js src/B.js'), ['file:/repo/src/a.js', 'file:/repo/src/b.js']);
+  assert.deepEqual(k('cat -n /abs/x.js'), ['file:/abs/x.js']);
+  assert.deepEqual(k("sed -n '10,40p' lib/x.js"), ['file:/repo/lib/x.js']);
+  assert.deepEqual(k("sed -e 's/a/b/' lib/x.js"), ['file:/repo/lib/x.js']);
+  assert.deepEqual(k('head -n 50 README.md | grep foo'), ['file:/repo/readme.md']);
+  assert.deepEqual(k('cd src && nl -ba cart.js'), ['file:/repo/src/cart.js']);
+  assert.deepEqual(k('cd /other && tail -n 5 ../log.txt 2>/dev/null'), ['file:/log.txt']);
+  assert.deepEqual(k('cat "my file.txt" > out.txt'), ['file:/repo/my file.txt']);
+  assert.deepEqual(k('cat a.js 2>&1'), ['file:/repo/a.js']);
+  assert.deepEqual(k('LANG=C cat a.js; cat a.js'), ['file:/repo/a.js']);
+  assert.deepEqual(k('Get-Content C:\\Repo\\A.js -TotalCount 20', ''), ['file:c:/repo/a.js']);
+  assert.equal(k('Get-Content C:\\Repo\\A.js', '')[0], readKey('Read', { file_path: 'C:\\Repo\\A.js' }), 'same key as a Read of the same file');
+});
+
+test('shellReadKeys: ignores anything that is not a plain read of a literal file', () => {
+  const k = cmd => shellReadKeys(cmd, '/repo');
+  assert.deepEqual(k('cat src/*.js'), []);
+  assert.deepEqual(k('cat $FILE'), []);
+  assert.deepEqual(k('echo hi > out.txt'), []);
+  assert.deepEqual(k('grep -n foo src/a.js'), []);
+  assert.deepEqual(k("sed -i 's/a/b/' src/a.js"), []);
+  assert.deepEqual(k('npm test'), []);
+  assert.deepEqual(k(''), []);
+  assert.deepEqual(shellReadKeys('cat a.js', ''), [], 'a relative path needs a working directory');
+});
+
+test('parseAgent: Bash reads become shell keys; duplicate reads count them', () => {
+  const line = (id, cmd) => JSON.stringify({ type: 'assistant', cwd: '/repo', timestamp: '2026-09-01T10:00:00Z',
+    message: { id, usage: { input_tokens: 1 }, content: [{ type: 'tool_use', id: id + 't', name: 'Bash', input: { command: cmd } }] } });
+  const a = parseAgent(line('m1', 'cat -n src/cart.js'), {});
+  assert.deepEqual(a.turns[0].calls[0], { name: 'Bash', key: null, shellKeys: ['file:/repo/src/cart.js'] });
 });
