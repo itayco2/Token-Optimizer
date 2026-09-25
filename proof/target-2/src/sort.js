@@ -14,7 +14,7 @@ export function sortInPlace(arr) {
   return arr.sort((a, b) => a - b);
 }
 
-/** The `n` largest numbers, largest first. Leaves `arr` unchanged. */
+/** The `n` largest numbers (n a non-negative integer), largest first. Leaves `arr` unchanged. */
 export function topN(arr, n) {
   return [...arr].sort((a, b) => b - a).slice(0, n);
 }

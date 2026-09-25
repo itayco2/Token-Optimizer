@@ -6,10 +6,10 @@
     { "id": "month-zero-based", "file": "src/dates.js", "line": 12, "summary": "monthKey uses getUTCMonth() as 1-based, so January is 00" },
     { "id": "escape-order", "file": "src/escape.js", "line": 11, "summary": "escapeHtml replaces & after < and >, double-escaping them (&lt; becomes &amp;lt;)" },
     { "id": "email-unanchored", "file": "src/validate.js", "line": 7, "summary": "isEmail's regex has no $ anchor, so trailing text is accepted" },
-    { "id": "ttl-units", "file": "src/cache.js", "line": 26, "summary": "TtlCache.get multiplies ttlMs by 1000, so entries live 1000 times too long" },
-    { "id": "hitcount-zero", "file": "src/cache.js", "line": 40, "summary": "hitCount returns undefined instead of 0 for a key that was set but never read" },
+    { "id": "ttl-units", "file": "src/cache.js", "line": 27, "summary": "TtlCache.get multiplies ttlMs by 1000, so entries live 1000 times too long" },
+    { "id": "hitcount-zero", "file": "src/cache.js", "line": 41, "summary": "hitCount returns undefined instead of 0 for a key that was set but never read" },
     { "id": "retry-count", "file": "src/retry.js", "line": 15, "summary": "retry runs fn only `retries` times instead of retries + 1 (0 retries never calls fn)" },
-    { "id": "foreach-async", "file": "src/batch.js", "line": 19, "summary": "processAll uses forEach with an async callback: it resolves before the work finishes, runs items concurrently and loses rejections" },
+    { "id": "foreach-async", "file": "src/batch.js", "line": 20, "summary": "processAll uses forEach with an async callback: it resolves before the work finishes, runs items concurrently and loses rejections" },
     { "id": "comparator-boolean", "file": "src/sort.js", "line": 6, "summary": "byDateDesc's comparator returns a boolean instead of a number, so the sort order is wrong" },
     { "id": "page-boundary", "file": "src/page.js", "line": 16, "summary": "nextPage uses >= afterId, so each page repeats the last item of the previous page" },
     { "id": "clone-dates", "file": "src/records.js", "line": 7, "summary": "cloneRecord uses JSON round-tripping, which turns Date values into strings" }
@@ -18,17 +18,17 @@
     { "id": "format-cents", "file": "src/money.js", "lines": [9,15], "summary": "correct" },
     { "id": "apply-tax", "file": "src/money.js", "lines": [36,38], "summary": "correct" },
     { "id": "sum-lines", "file": "src/money.js", "lines": [44,46], "summary": "correct" },
-    { "id": "days-between", "file": "src/dates.js", "lines": [20,24], "summary": "correct" },
-    { "id": "is-weekend", "file": "src/dates.js", "lines": [27,30], "summary": "correct" },
-    { "id": "add-days", "file": "src/dates.js", "lines": [33,35], "summary": "correct: same instant plus n x 24 h, as documented" },
+    { "id": "days-between", "file": "src/dates.js", "lines": [20, 23], "summary": "correct" },
+    { "id": "is-weekend", "file": "src/dates.js", "lines": [26, 29], "summary": "correct" },
+    { "id": "add-days", "file": "src/dates.js", "lines": [32, 34], "summary": "correct: same instant plus n x 24 h, as documented" },
     { "id": "slugify", "file": "src/escape.js", "lines": [20,25], "summary": "correct" },
     { "id": "positive-int", "file": "src/validate.js", "lines": [11,13], "summary": "correct" },
-    { "id": "validate-invoice", "file": "src/validate.js", "lines": [19,27], "summary": "correct itself (it calls the buggy isEmail)" },
-    { "id": "chunk", "file": "src/batch.js", "lines": [5,10], "summary": "correct" },
+    { "id": "validate-invoice", "file": "src/validate.js", "lines": [20, 29], "summary": "correct itself (it calls the buggy isEmail)" },
+    { "id": "chunk", "file": "src/batch.js", "lines": [6, 11], "summary": "correct" },
     { "id": "sort-in-place", "file": "src/sort.js", "lines": [13,15], "summary": "correct: sorting in place is documented" },
     { "id": "top-n", "file": "src/sort.js", "lines": [18,20], "summary": "correct" },
     { "id": "from-start-loose-eq", "file": "src/page.js", "lines": [5,7], "summary": "correct: loose == null is documented" },
     { "id": "sleep", "file": "src/retry.js", "lines": [2,4], "summary": "correct" },
-    { "id": "cache-set", "file": "src/cache.js", "lines": [15,17], "summary": "correct" }
+    { "id": "cache-set", "file": "src/cache.js", "lines": [15, 18], "summary": "correct" }
   ]
 }

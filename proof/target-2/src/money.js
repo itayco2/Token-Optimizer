@@ -28,13 +28,13 @@ export function splitAmount(cents, parts) {
 }
 
 /**
- * Add a percentage tax and round to the nearest cent.
- * applyTax(1000, 17) → 1170.
- * @param {number} cents
- * @param {number} ratePct  e.g. 17 for 17%
+ * Add a percentage tax and round to the nearest cent; exact half cents round up.
+ * applyTax(1000, 17) → 1170, applyTax(50, 15) → 58.
+ * @param {number} cents  an integer
+ * @param {number} ratePct  an integer percentage, e.g. 17 for 17%
  */
 export function applyTax(cents, ratePct) {
-  return Math.round(cents * (1 + ratePct / 100));
+  return Math.round((cents * (100 + ratePct)) / 100);
 }
 
 /**

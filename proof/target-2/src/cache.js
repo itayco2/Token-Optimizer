@@ -14,6 +14,7 @@ export class TtlCache {
   /** Store a value. Storing again replaces the value and restarts its lifetime. */
   set(key, value) {
     this.entries.set(key, { value, at: this.now() });
+    if (!this.hits.has(key)) this.hits.set(key, 0);
   }
 
   /**
@@ -36,7 +37,7 @@ export class TtlCache {
    * read); undefined means the key was never set.
    */
   hitCount(key) {
-    if (!this.entries.has(key) && !this.hits.has(key)) return undefined;
+    if (!this.hits.has(key)) return undefined;
     return this.hits.get(key) || undefined;
   }
 }

@@ -18,9 +18,8 @@ export function monthKey(date) {
  * Negative when `b` is before `a`. daysBetween(Jan 1 23:00, Jan 2 01:00) → 1.
  */
 export function daysBetween(a, b) {
-  const start = Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate());
-  const end = Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate());
-  return Math.round((end - start) / DAY_MS);
+  const dayNumber = d => Math.floor(d.getTime() / DAY_MS);
+  return dayNumber(b) - dayNumber(a);
 }
 
 /** True on Saturday and Sunday, in UTC. */

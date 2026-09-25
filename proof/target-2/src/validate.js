@@ -13,14 +13,16 @@ export function isPositiveInt(v) {
 }
 
 /**
- * Check a new-invoice request. Returns a list of problems; an empty list means it's valid.
+ * Check a new-invoice request: {email, lines}, where lines, if present, is an array of
+ * {sku, qty} objects. Returns a list of problems; an empty list means it's valid.
  * Needs a customer email, at least one line, and positive integer quantities.
  */
 export function validateInvoice(req) {
   const problems = [];
   if (!isEmail(req.email || '')) problems.push('email');
-  if (!Array.isArray(req.lines) || req.lines.length === 0) problems.push('lines');
-  for (const line of req.lines || []) {
+  const lines = Array.isArray(req.lines) ? req.lines : [];
+  if (lines.length === 0) problems.push('lines');
+  for (const line of lines) {
     if (!isPositiveInt(line.qty)) problems.push(`qty:${line.sku}`);
   }
   return problems;

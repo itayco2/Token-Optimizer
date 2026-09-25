@@ -63,6 +63,13 @@ test('planted bugs break their JSDoc', async () => {
   const fresh = new TtlCache(1000, () => 0);
   fresh.set('k', 'v');
   assert.equal(fresh.hitCount('k'), undefined, 'hitcount-zero: set but never read should be 0');
+  assert.equal(fresh.hitCount('toString'), undefined, 'never set');
+  let t = 0;
+  const expiring = new TtlCache(1, () => t);
+  expiring.set('k', 'v');
+  t = 1e9;
+  assert.equal(expiring.get('k'), undefined);
+  assert.equal(expiring.hits.get('k'), 0, 'the stored count stays 0 after expiry; only the planted line hides it');
 
   let calls = 0;
   await assert.rejects(retry(async () => { calls++; return 'ok'; }, 0), 'retry-count: 0 retries should still call once');
@@ -87,10 +94,13 @@ test('decoys do what their JSDoc says', () => {
   assert.equal(formatCents(5), '$0.05');
   assert.equal(formatCents(-250), '-$2.50');
   assert.equal(applyTax(1000, 17), 1170);
+  assert.equal(applyTax(50, 15), 58, 'exact half cents round up');
+  assert.equal(applyTax(50, 13), 57, 'exact half cents round up');
   assert.equal(sumLines([]), 0);
   assert.equal(sumLines([{ price: 250, qty: 2 }, { price: 100, qty: 1 }]), 600);
   assert.equal(daysBetween(new Date('2026-01-01T23:00:00Z'), new Date('2026-01-02T01:00:00Z')), 1);
   assert.equal(daysBetween(new Date('2026-01-05T00:00:00Z'), new Date('2026-01-01T12:00:00Z')), -4);
+  assert.equal(daysBetween(new Date('0099-12-31T00:00:00Z'), new Date('0100-01-01T00:00:00Z')), 1, 'years 0-99 too');
   assert.equal(isWeekend(new Date('2026-09-26T12:00:00Z')), true);
   assert.equal(isWeekend(new Date('2026-09-25T12:00:00Z')), false);
   assert.equal(addDays(new Date('2026-01-31T10:00:00Z'), 1).toISOString(), '2026-02-01T10:00:00.000Z');
@@ -101,6 +111,9 @@ test('decoys do what their JSDoc says', () => {
   assert.deepEqual(validateInvoice({ email: 'a@b.co', lines: [{ sku: 's', qty: 1 }] }), []);
   assert.deepEqual(validateInvoice({ email: 'nope', lines: [] }), ['email', 'lines']);
   assert.deepEqual(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+  assert.throws(() => chunk([1], 1.5), RangeError);
+  assert.throws(() => chunk([1], 0), RangeError);
+  assert.deepEqual(validateInvoice({ email: 'a@b.co', lines: {} }), ['lines']);
   const arr = [3, 1, 2];
   assert.equal(sortInPlace(arr), arr);
   assert.deepEqual(arr, [1, 2, 3]);
