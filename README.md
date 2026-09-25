@@ -84,7 +84,23 @@ Then start a new session: agent definitions load only when a session starts.
 
 ## Proof
 
-[proof/](proof/) is a ready-to-run before/after. One review workflow with seven agents looks for six planted bugs, run twice with default agents and twice with lean roles. It's scored on bugs found, tokens and time. Results go in `docs/proof/`. **Not run yet.**
+A 7-agent code-review workflow (3 reviewers → 3 checkers → 1 judge) was run on libraries with planted bugs, alternating default agents and lean roles, with identical prompts. Claude Code on the web, Opus 5.5:
+
+| | Round 1: 6 bugs, 2 runs each | Round 2: 11 subtler bugs + 15 decoys, 3 runs each |
+|---|---|---|
+| Bugs found, plain / lean | 6/6 every run / 6/6 every run | 11/11 every run / 11/11 every run |
+| False alarms | 0 / 0 | 0 / 0 (no decoy flagged) |
+| Tokens read per run | 813.6k → 140.1k (**−83%**; noise 1%) | 849.7k → 197.5k (**−77%**; noise 0–6%) |
+| First turn | 47.9k → 5.6k | 44.6k → 6.7k |
+| API-price equivalent | −62% (noise 23%) | −36% (noise 0–25%) |
+| Wall-clock | **+16% (slower)** | **+12% (slower)** |
+
+- **Quality held,** but both variants found everything, so this shows no loss on these tasks. It can't rule out a small loss on harder work.
+- **Lean was about 10–15% slower.** Its agents thought more (up to 80% more thinking tokens in the verify stage); it isn't the tools or the effort setting.
+- **X-ray predicted the saving** from the plain runs alone, and the measured result fell inside its range both times.
+- **These agents were short** (2–3 turns), so the fixed start was ~90% of their reading. On longer real agents, where it's ~43%, expect roughly 25–37% fewer tokens read.
+
+Details: [round 1](docs/proof/2026-09-25-review.md), [round 2](docs/proof/2026-09-25-review-round2.md). The kit to rerun it on your own setup is in [proof/](proof/).
 
 ## Limits
 

@@ -24,6 +24,7 @@ export function agentTiming(a) {
     modelMs: a.time.model || 0,
     toolMs,
     output: a.turns.reduce((x, t) => x + t.usage.output, 0),
+    thinking: a.turns.reduce((x, t) => x + (t.usage.thinking || 0), 0),
     first,
     firstCachedShare: first ? u0.cacheRead / first : 0,
     tools: a.turns.flatMap(t => t.calls.map(c => c.name)),
@@ -46,6 +47,7 @@ export function runTiming(run) {
       modelMs: list.reduce((x, a) => x + a.modelMs, 0),
       toolMs: list.reduce((x, a) => x + a.toolMs, 0),
       output: list.reduce((x, a) => x + a.output, 0),
+      thinking: list.reduce((x, a) => x + a.thinking, 0),
       medianFirst: median(list.map(a => a.first)),
       medianFirstCached: median(list.map(a => a.firstCachedShare)),
     }])),
@@ -57,13 +59,13 @@ export function timingTable(timings) {
   const rows = [];
   for (const t of timings) {
     for (const [stage, s] of Object.entries(t.stages)) {
-      rows.push(`| ${t.id} | ${t.variant} | ${sec(t.wallMs)} | ${stage} | ${s.agents} | ${sec(s.medianMs)} | ${sec(s.maxMs)} | ${s.turns} | ${s.turns ? sec(s.modelMs / s.turns) : '–'} | ${sec(s.toolMs)} | ${s.output} | ${Math.round(s.medianFirst / 100) / 10}k | ${Math.round(100 * s.medianFirstCached)}% |`);
+      rows.push(`| ${t.id} | ${t.variant} | ${sec(t.wallMs)} | ${stage} | ${s.agents} | ${sec(s.medianMs)} | ${sec(s.maxMs)} | ${s.turns} | ${s.turns ? sec(s.modelMs / s.turns) : '–'} | ${sec(s.toolMs)} | ${s.output} | ${s.thinking} | ${Math.round(s.medianFirst / 100) / 10}k | ${Math.round(100 * s.medianFirstCached)}% |`);
     }
   }
   const tools = timings.map(t => `- ${t.id} (${t.variant}): ${Object.entries(t.toolCounts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ×${v}`).join(', ')}`);
   return [
-    '| Run | Variant | Wall (s) | Stage | Agents | Median agent (s) | Slowest agent (s) | Turns | Model s/turn | Tool time (s) | Output tokens | Median first turn | First turn cached |',
-    '|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
+    '| Run | Variant | Wall (s) | Stage | Agents | Median agent (s) | Slowest agent (s) | Turns | Model s/turn | Tool time (s) | Output tokens | of which thinking | Median first turn | First turn cached |',
+    '|---|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
     ...rows,
     '',
     'Tool calls per run:',

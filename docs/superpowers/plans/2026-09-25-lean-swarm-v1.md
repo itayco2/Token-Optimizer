@@ -19,8 +19,8 @@
 | 3. Scripts and fixtures | Done. Fixtures are a scrubbed real 2.1.282 run plus hand-built 2.1.250-style transcripts in `test/helpers.js` |
 | 4–6. Log reader, measures, report | Done. 59 tests, 100% line coverage. Cross-checked against the prototypes on the same run (`docs/method.md`) |
 | 7. Check against the baseline | **Open, Itay's machine:** `node bin/lean-swarm.js xray --out out/baseline.md`, then compare with spec §2 |
-| 8. Lean roles | Files done and tested against `src/roles.js`. **Open:** live check with `proof/roles-check.workflow.js` in a fresh session |
-| 9. Proof run | Kit done (`proof/`). **Open:** the four runs, in a fresh session with the plugin loaded |
+| 8. Lean roles | Done. Live roles check passed in a cloud session (`docs/proof/2026-09-25-roles-check.md`): every role started at 6.0k tokens or less, against 47.1k for a default agent, and returned structured output. **Open:** the same check with the installed plugin on Itay's machine |
+| 9. Proof run | Done in the cloud, two rounds (`docs/proof/`). Round 1: 6/6 bugs both ways, −83% tokens read, +16% wall-clock. Round 2 (harder target, decoys, 3 runs each): 11/11 both ways, −77%, +12%. **Open:** a run on Itay's own setup |
 | 10. README and release | README and license done. **Open:** public name (Q5), `npx` test from another machine, making the repo public |
 
 Changes from the plan as written:
@@ -28,6 +28,9 @@ Changes from the plan as written:
 - **Output tokens** per turn are the largest value seen on the turn's lines, not the first (same result on 2.1.282).
 - **Newer CLI versions don't log tool definitions,** so X-ray estimates that part and gives lean savings as a range.
 - **The proof is a planted-bug review** (`proof/`), chosen so output can be scored, not just read.
+- **Round 2 added a harder target with decoys,** audited first by adversarial agents, because round 1 hit the quality ceiling.
+- **X-ray counts files read through shell commands,** because the proof agents read everything with Bash.
+- **Follow-up:** lean agents think more and run about 10–15% slower. Test a role body that mirrors the default workflow agent's wording.
 
 ## File map
 

@@ -10,6 +10,7 @@ test('parseAgent: one turn per message id, output from its last line', () => {
   assert.deepEqual(a.turns.map(t => t.usage.input + t.usage.cacheRead + t.usage.cacheWrite), A.contexts);
   assert.equal(a.turns.reduce((x, t) => x + t.usage.output, 0), A.output);
   assert.equal(a.turns[2].usage.cacheWrite1h, 100);
+  assert.equal(a.turns[0].usage.thinking, 0);
   assert.equal(a.agentType, 'code-reviewer');
   assert.equal(a.phase, 'Review');
   assert.deepEqual(a.versions, ['2.1.250']);
@@ -67,12 +68,13 @@ test('parseAgent: assistant line without a message is skipped', () => {
 test('parseAgent: usage can arrive on a later line of the same turn', () => {
   const text = [
     { type: 'assistant', timestamp: '2026-09-01T10:00:00Z', message: { id: 'm1', content: [] } },
-    { type: 'assistant', timestamp: '2026-09-01T10:00:01Z', message: { id: 'm1', content: [], usage: { input_tokens: 7, output_tokens: 3 } } },
+    { type: 'assistant', timestamp: '2026-09-01T10:00:01Z', message: { id: 'm1', content: [], usage: { input_tokens: 7, output_tokens: 3, output_tokens_details: { thinking_tokens: 2 } } } },
   ].map(x => JSON.stringify(x)).join('\n');
   const a = parseAgent(text, {});
   assert.equal(a.turns.length, 1);
   assert.equal(a.turns[0].usage.input, 7);
   assert.equal(a.turns[0].usage.output, 3);
+  assert.equal(a.turns[0].usage.thinking, 2);
   assert.equal(a.firstTurn.tokens, 7, "usage from a later line of the same turn still counts");
 });
 

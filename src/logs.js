@@ -144,6 +144,7 @@ function usageOf(u) {
     cacheWrite5m: c.ephemeral_5m_input_tokens || 0,
     cacheWrite1h: c.ephemeral_1h_input_tokens || 0,
     output: u.output_tokens || 0,
+    thinking: (u.output_tokens_details && u.output_tokens_details.thinking_tokens) || 0,
   };
 }
 
@@ -253,6 +254,7 @@ export function parseAgent(text, meta = {}, id = '') {
       } else if (m.usage) {
         if (!turn.hasUsage) { turn.usage = usageOf(m.usage); turn.hasUsage = true; }
         turn.usage.output = Math.max(turn.usage.output, m.usage.output_tokens || 0);
+        turn.usage.thinking = Math.max(turn.usage.thinking, usageOf(m.usage).thinking);
       }
       if (!turn.model && m.model) turn.model = m.model;
       for (const c of Array.isArray(m.content) ? m.content : []) {
