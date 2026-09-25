@@ -10,6 +10,25 @@
 
 **Where each task runs:** some tasks need Itay's real logs or his local Claude Code (CLI 2.1.250, Windows). Those are marked **[Itay's machine]**. The rest can run anywhere, including a cloud session, marked **[anywhere]**.
 
+## Status (2026-09-25)
+
+| Task | State |
+|---|---|
+| 1. Open questions | Done in a cloud session instead of Itay's machine: `docs/decisions/0002`. Q3 is from the docs and gets checked live by the roles check in Task 8 |
+| 2. Skeleton | Done |
+| 3. Scripts and fixtures | Done. Fixtures are a scrubbed real 2.1.282 run plus hand-built 2.1.250-style transcripts in `test/helpers.js` |
+| 4–6. Log reader, measures, report | Done. 59 tests, 100% line coverage. Cross-checked against the prototypes on the same run (`docs/method.md`) |
+| 7. Check against the baseline | **Open, Itay's machine:** `node bin/lean-swarm.js xray --out out/baseline.md`, then compare with spec §2 |
+| 8. Lean roles | Files done and tested against `src/roles.js`. **Open:** live check with `proof/roles-check.workflow.js` in a fresh session |
+| 9. Proof run | Kit done (`proof/`). **Open:** the four runs, in a fresh session with the plugin loaded |
+| 10. README and release | README and license done. **Open:** public name (Q5), `npx` test from another machine, making the repo public |
+
+Changes from the plan as written:
+- **X-ray takes no `--all`:** plain `xray` reads every run.
+- **Output tokens** per turn are the largest value seen on the turn's lines, not the first (same result on 2.1.282).
+- **Newer CLI versions don't log tool definitions,** so X-ray estimates that part and gives lean savings as a range.
+- **The proof is a planted-bug review** (`proof/`), chosen so output can be scored, not just read.
+
 ## File map
 
 ```

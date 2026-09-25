@@ -1,7 +1,7 @@
 # Lean-Swarm: design spec (v1)
 
 - **Date:** 2026-09-25
-- **Status:** v1 scope, for Itay's review
+- **Status:** v1 in progress. X-ray, the lean roles and the proof kit are built. The proof run and the check on Itay's own logs remain; see the plan's status section.
 - **Name:** "Lean-Swarm" is a working name. Choose the public name before the repo goes public (Q5).
 - **Scope change:** the first draft had nine parts and a 12-task quality gate, which is weeks of work. v1 keeps the three parts that carry most of the value and take a few days. Everything else is in §9 "Later". The full first draft is in git history (commit `c669ccc`). Why: `docs/decisions/0001-cut-v1-scope.md`.
 
@@ -112,7 +112,7 @@ One repo with two things in it: a Node.js CLI (X-ray) and a Claude Code plugin (
 
 ### 7.1 X-ray: `lean-swarm xray`
 
-- **Commands:** `xray <run-dir>`, `xray --all [--since DATE]`, `xray --compare <runs A> --vs <runs B>`. Markdown by default, `--json` for machines.
+- **Commands:** `xray` (every run), `xray <run-dir>`, `xray --since DATE`, `xray --compare <runs A> --vs <runs B>`. Markdown by default, `--json` for machines.
 - **Input:** agent transcripts, `.meta.json` and `journal.jsonl` under `~/.claude/projects`. Plain Agent-tool subagents too, if their logs share the format (Q4).
 - **Output, per run and in aggregate:**
   - tokens by kind (uncached, cache read, cache write, output) and price-weighted shares;
@@ -124,7 +124,7 @@ One repo with two things in it: a Node.js CLI (X-ray) and a Claude Code plugin (
   - model mix.
 - **"What you could cut":** the last section lists, per agent type, the tokens spent on tools it loads and never calls, and the lean role that fits. The report shows each reader their own numbers instead of promising Itay's.
 - **Makeup method:** the first turn's billed total comes from its usage fields. It is split between parts by each part's share of characters in the prompt snapshot. The report says so.
-- **Price weights:** relative weights per model, from Anthropic's published prices, in one table with its source date. Reported as price-weighted units, not dollars, because on a subscription tokens aren't money.
+- **Price weights:** Anthropic's list prices per model, in one table with its source date. The main output is shares of cost. The report also gives an API-price equivalent in dollars, labeled as a comparison unit, because on a subscription tokens aren't money.
 - **Privacy:** the report never prints prompt or output text. File paths and URLs appear only with `--show-paths`, so a report is safe to paste in public by default.
 - **Nature:** read-only.
 - **Risk:** the log format is internal. The parser lives in one module, with fixture tests. Each report records the CLI versions it read, and counts lines it couldn't parse.
@@ -215,6 +215,9 @@ Each milestone ends with its numbers in the README and a commit.
 - **Resume line** with a hard number, for example "cut subagent starting context 57%, measured across 2,121 agents".
 
 ## 13. Open questions (v1)
+
+Q1–Q4 are answered in `docs/decisions/0002-open-questions.md`: Q1, Q2 and Q4 from a live run, and Q3 from the docs. Q5 is still open.
+
 
 - **Q1** Is StructuredOutput still available when a role has a tools allowlist and the workflow passes a schema? The docs say yes; confirm. 79% of agents use it, so this decides whether lean roles work in workflows at all.
 - **Q2** When a role names WebFetch or WebSearch in `tools`, are they loaded directly, so the agent never needs ToolSearch?
