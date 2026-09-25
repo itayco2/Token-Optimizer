@@ -47,6 +47,14 @@ test('agents/*.md match src/roles.js', () => {
   }
 });
 
+test('.claude/agents/ holds exact copies of agents/, for sessions that cannot load the plugin', () => {
+  for (const role of ROLES) {
+    const a = fs.readFileSync(path.join(ROOT, 'agents', role.name + '.md'), 'utf8');
+    const b = fs.readFileSync(path.join(ROOT, '.claude', 'agents', role.name + '.md'), 'utf8');
+    assert.equal(b, a, `.claude/agents/${role.name}.md matches agents/${role.name}.md`);
+  }
+});
+
 test('plugin and marketplace manifests are valid and agree', () => {
   const plugin = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8'));
   const market = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin', 'marketplace.json'), 'utf8'));

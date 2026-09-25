@@ -33,4 +33,5 @@
   | statusline-setup | 2 | 8,686 |
 
   An allowlist cut the start by 68–81% here, against 57% on Itay's machine (68k → 29k, with instruction files).
+- **Cloud sessions don't load a repository's plugin marketplace** (`extraKnownMarketplaces` needs the workspace trust prompt, which they never show). They do load project agents from `.claude/agents/`, so the repo keeps exact copies of the roles there, and the proof workflows take a `rolePrefix` argument.
 - **Plugin agents support** `tools`, `model`, `effort`, `omitClaudeMd` and others. They ignore `hooks`, `mcpServers`, `permissionMode` and `initialPrompt`.

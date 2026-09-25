@@ -5,10 +5,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ROLES } from '../src/roles.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const KEY = JSON.parse(fs.readFileSync(path.join(HERE, 'grading', 'key.json'), 'utf8'));
 
+const ROLE_TYPES = new Set(ROLES.flatMap(r => [r.name, 'lean-swarm:' + r.name]));
 const norm = f => String(f || '').split('\\').join('/').replace(/^\.\//, '');
 const sameFile = (reported, keyFile) => {
   const r = norm(reported);
@@ -48,7 +50,7 @@ export function readProofRun(dir) {
   for (const f of agentFiles) {
     try {
       const meta = JSON.parse(fs.readFileSync(path.join(dir, f.replace(/\.jsonl$/, '.meta.json')), 'utf8'));
-      if (String(meta.agentType || '').startsWith('lean-swarm:')) lean = true;
+      if (ROLE_TYPES.has(meta.agentType)) lean = true;
     } catch { /* no meta */ }
     for (const e of jsonl(path.join(dir, f))) {
       if (e.type !== 'assistant' || !e.message || !Array.isArray(e.message.content)) continue;

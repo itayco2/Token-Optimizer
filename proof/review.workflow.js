@@ -1,7 +1,7 @@
 export const meta = {
   name: 'lean-swarm-proof-review',
   description: 'Proof run: review a small library with planted bugs, as plain or lean agents',
-  whenToUse: 'Run with args {variant: "plain" | "lean", target: "<absolute path to proof/target>"}',
+  whenToUse: 'Run with args {variant: "plain" | "lean", target: "<absolute path to proof/target>", rolePrefix?: "lean-swarm:" | ""}',
   phases: [
     { title: 'Find', detail: 'three reviewers, one lens each' },
     { title: 'Verify', detail: 'one checker per reviewer' },
@@ -14,8 +14,11 @@ const variant = args && args.variant
 const target = args && args.target
 if (variant !== 'plain' && variant !== 'lean') throw new Error('args.variant must be "plain" or "lean"')
 if (!target) throw new Error('args.target must be the absolute path of proof/target')
-const REVIEWER = variant === 'lean' ? { agentType: 'lean-swarm:reviewer' } : {}
-const JUDGE = variant === 'lean' ? { agentType: 'lean-swarm:judge' } : {}
+// Plugin roles are "lean-swarm:<role>". Pass rolePrefix "" to use the project copies in .claude/agents/
+// (cloud sessions don't load a repo's plugin marketplace).
+const prefix = args && typeof args.rolePrefix === 'string' ? args.rolePrefix : 'lean-swarm:'
+const REVIEWER = variant === 'lean' ? { agentType: prefix + 'reviewer' } : {}
+const JUDGE = variant === 'lean' ? { agentType: prefix + 'judge' } : {}
 
 const FINDINGS = {
   type: 'object',

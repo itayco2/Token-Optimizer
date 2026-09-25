@@ -10,6 +10,8 @@ This kit runs one real multi-agent workflow twice each way and compares tokens, 
 
 Claude Code loads agent definitions only when a session starts. The lean roles must be installed before the session that runs the proof begins.
 
+**In a Claude Code on the web session,** a repository's plugin marketplace is not loaded (that needs the workspace trust prompt, which cloud sessions never show). Project agents in `.claude/agents/` do load. This repo keeps exact copies of the roles there (a test keeps them in sync), so pass `"rolePrefix": ""` in the workflow args to use them as `reviewer` and `judge` instead of `lean-swarm:reviewer` and `lean-swarm:judge`.
+
 ## Steps
 
 1. **Start a session with the plugin loaded,** in the repo root:

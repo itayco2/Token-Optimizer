@@ -48,7 +48,7 @@ test('readProofRun finds the report, the variant and any peek at the key', () =>
     { type: 'result', agentId: 'a1', result: { findings: [] } },
     { type: 'result', agentId: 'a2', result: { findings: [{ file: 'src/cart.js', line: 36, title: 't', why: 'w' }] } },
   ]);
-  fs.writeFileSync(path.join(dir, 'agent-a1.meta.json'), JSON.stringify({ agentType: 'lean-swarm:reviewer' }));
+  fs.writeFileSync(path.join(dir, 'agent-a1.meta.json'), JSON.stringify({ agentType: 'reviewer' }));
   w('agent-a1.jsonl', [{ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Read', input: { file_path: '/r/proof/grading/key.json' } }] } }]);
   const r = readProofRun(dir);
   assert.equal(r.variant, 'lean');
@@ -60,9 +60,9 @@ test('readProofRun finds the report, the variant and any peek at the key', () =>
 
 test('the workflow script differs between variants only in agent type', () => {
   const src = fs.readFileSync(path.join(ROOT, 'proof', 'review.workflow.js'), 'utf8');
-  assert.match(src, /variant === 'lean' \? \{ agentType: 'lean-swarm:reviewer' \} : \{\}/);
-  assert.match(src, /variant === 'lean' \? \{ agentType: 'lean-swarm:judge' \} : \{\}/);
-  assert.equal((src.match(/agentType/g) || []).length, 2);
+  assert.match(src, /variant === 'lean' \? \{ agentType: prefix \+ 'reviewer' \} : \{\}/);
+  assert.match(src, /variant === 'lean' \? \{ agentType: prefix \+ 'judge' \} : \{\}/);
+  assert.equal((src.match(/agentType:/g) || []).length, 2);
 });
 
 // Run the workflow script the way the Workflow runtime does: an async body with injected helpers.
@@ -91,6 +91,8 @@ test('workflow: lean uses the roles, plain uses default agents, prompts are iden
   assert.deepEqual(lean.calls.map(c => c.prompt).sort(), plain.calls.map(c => c.prompt).sort());
   assert.ok(lean.calls.every(c => c.prompt.includes(`Only read files under ${target}`)));
   assert.deepEqual(lean.result, { variant: 'lean', findings: [{ file: 'src/cart.js', line: 24, title: 't', why: 'w' }] });
+  const project = await runWorkflow({ variant: 'lean', target, rolePrefix: '' });
+  assert.deepEqual(project.calls.map(c => c.opts.agentType), [...Array(6).fill('reviewer'), 'judge']);
   await assert.rejects(runWorkflow({ variant: 'fast', target }), /variant/);
   await assert.rejects(runWorkflow({ variant: 'lean' }), /target/);
 });

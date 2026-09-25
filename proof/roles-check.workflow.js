@@ -13,9 +13,11 @@ const RESULT = {
   required: ['tools', 'ok'],
 }
 const TASK = 'List the exact names of the tools you can call right now (not deferred ones you would have to load first), then return ok: true. Do nothing else.'
+// Plugin roles are "lean-swarm:<role>". Pass args {rolePrefix: ""} to use the project copies in .claude/agents/.
+const prefix = args && typeof args.rolePrefix === 'string' ? args.rolePrefix : 'lean-swarm:'
 const AGENTS = [
   { label: 'default', opts: {} },
-  ...['reader', 'researcher', 'coder', 'reviewer', 'judge'].map(r => ({ label: r, opts: { agentType: `lean-swarm:${r}` } })),
+  ...['reader', 'researcher', 'coder', 'reviewer', 'judge'].map(r => ({ label: r, opts: { agentType: prefix + r } })),
 ]
 
 phase('Check')
