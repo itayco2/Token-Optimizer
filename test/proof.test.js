@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { KEY, readProofRun, scoreFindings, scoreTable } from '../proof/score.js';
@@ -54,7 +55,7 @@ test('readProofRun finds the report, the variant and any peek at the key', () =>
   assert.equal(r.variant, 'lean');
   assert.equal(r.touchedKey, true);
   assert.equal(r.findings.length, 1);
-  assert.match(scoreTable([r]), /\| lean \| 1\/6 \| discount-subtracted \|.*\| 0 \| yes \|/);
+  assert.match(scoreTable([r]), /\| lean \| 1\/6 \| discount-subtracted \|.*\| 0 \| – \| yes \|/);
   assert.match(scoreTable([{ dir, variant: 'plain', findings: null, touchedKey: false }]), /no report found/);
 });
 
@@ -95,4 +96,45 @@ test('workflow: lean uses the roles, plain uses default agents, prompts are iden
   assert.deepEqual(project.calls.map(c => c.opts.agentType), [...Array(6).fill('reviewer'), 'judge']);
   await assert.rejects(runWorkflow({ variant: 'fast', target }), /variant/);
   await assert.rejects(runWorkflow({ variant: 'lean' }), /target/);
+});
+
+test('scoreFindings counts findings inside decoys as false alarms', () => {
+  const key = {
+    window: 3,
+    bugs: [{ id: 'b', file: 'src/a.js', line: 30 }],
+    decoys: [{ id: 'd1', file: 'src/a.js', lines: [5, 9] }, { id: 'd2', file: 'src/b.js', lines: [1, 4] }],
+  };
+  const s = scoreFindings([{ file: 'src/a.js', line: 31 }, { file: 'src/a.js', line: 7 }, { file: 'src/a.js', line: 12 }], key);
+  assert.deepEqual(s.matched.map(m => m.bug), ['b']);
+  assert.deepEqual(s.decoyHits, ['d1']);
+  assert.equal(s.other.length, 2);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'proof-'));
+  const table = scoreTable([{ dir, variant: 'plain', findings: [{ file: 'src/a.js', line: 7 }], touchedKey: false }], key);
+  assert.match(table, /\| plain \| 0\/1 \| – \| b \| 1 \| d1 \| no \|/);
+});
+
+test('score.js CLI takes --key', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'proof-cli-'));
+  fs.writeFileSync(path.join(dir, 'journal.jsonl'), [
+    { type: 'started', agentId: 'j', label: 'report' },
+    { type: 'result', agentId: 'j', result: { findings: [{ file: 'src/money.js', line: 27, title: 't', why: 'w' }] } },
+  ].map(x => JSON.stringify(x)).join('\n'));
+  const run = args => spawnSync(process.execPath, [path.join(ROOT, 'proof', 'score.js'), ...args], { encoding: 'utf8' });
+  const r = run(['--key', path.join(ROOT, 'proof', 'grading', 'key-2.json'), dir]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /\| plain \| 1\/11 \| split-remainder \|/);
+  assert.equal(run([]).status, 2);
+});
+
+test('timing.js breaks a run down by stage', async () => {
+  const { runTiming, timingTable } = await import('../proof/timing.js');
+  const { readRun, runFromDir } = await import('../src/logs.js');
+  const { WF_PROBE } = await import('./helpers.js');
+  const t = runTiming(readRun(runFromDir(WF_PROBE)));
+  assert.equal(t.variant, 'plain');
+  assert.deepEqual(Object.keys(t.stages), ['probe']);
+  assert.equal(t.stages.probe.agents, 4);
+  assert.equal(t.stages.probe.turns, 8);
+  assert.equal(t.toolCounts.StructuredOutput, 4);
+  assert.match(timingTable([t]), /\| wf_probe \| plain \| [\d.]+ \| probe \| 4 \|/);
 });

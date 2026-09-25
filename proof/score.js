@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Score proof runs against the planted-bug key.
-//   node proof/score.js <workflow-run-dir> [...]
+//   node proof/score.js [--key proof/grading/key-2.json] <workflow-run-dir> [...]
 // A run dir is the "Transcript dir" the Workflow tool prints. It holds journal.jsonl and agent-*.jsonl.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { ROLES } from '../src/roles.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-export const KEY = JSON.parse(fs.readFileSync(path.join(HERE, 'grading', 'key.json'), 'utf8'));
+export const loadKey = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+export const KEY = loadKey(path.join(HERE, 'grading', 'key.json'));
 
 const ROLE_TYPES = new Set(ROLES.flatMap(r => [r.name, 'lean-swarm:' + r.name]));
 const norm = f => String(f || '').split('\\').join('/').replace(/^\.\//, '');
@@ -32,7 +33,11 @@ export function scoreFindings(findings, key = KEY) {
     }
     if (best) { free.delete(best.i); matched.push({ bug: bug.id, finding: findings[best.i] }); } else missed.push(bug.id);
   }
-  return { recall: matched.length / key.bugs.length, matched, missed, other: [...free].map(i => findings[i]) };
+  const other = [...free].map(i => findings[i]);
+  // Decoys are correct code that looks suspicious. A finding inside one is a false alarm.
+  const decoyHits = (key.decoys || []).filter(d =>
+    other.some(f => sameFile(f.file, d.file) && Number(f.line) >= d.lines[0] && Number(f.line) <= d.lines[1])).map(d => d.id);
+  return { recall: matched.length / key.bugs.length, matched, missed, other, decoyHits };
 }
 
 function jsonl(file) {
@@ -68,21 +73,25 @@ export function readProofRun(dir) {
   };
 }
 
-export function scoreTable(runs) {
+export function scoreTable(runs, key = KEY) {
   const rows = runs.map(r => {
-    if (!r.findings) return `| ${path.basename(r.dir)} | ${r.variant} | no report found | | | | ${r.touchedKey ? 'yes' : 'no'} |`;
-    const s = scoreFindings(r.findings);
-    return `| ${path.basename(r.dir)} | ${r.variant} | ${s.matched.length}/${KEY.bugs.length} | ${s.matched.map(m => m.bug).join(', ') || '–'} | ${s.missed.join(', ') || '–'} | ${s.other.length} | ${r.touchedKey ? 'yes' : 'no'} |`;
+    if (!r.findings) return `| ${path.basename(r.dir)} | ${r.variant} | no report found | | | | | ${r.touchedKey ? 'yes' : 'no'} |`;
+    const s = scoreFindings(r.findings, key);
+    const decoys = key.decoys ? s.decoyHits.join(', ') || '0' : '–';
+    return `| ${path.basename(r.dir)} | ${r.variant} | ${s.matched.length}/${key.bugs.length} | ${s.matched.map(m => m.bug).join(', ') || '–'} | ${s.missed.join(', ') || '–'} | ${s.other.length} | ${decoys} | ${r.touchedKey ? 'yes' : 'no'} |`;
   });
   return [
-    '| Run | Variant | Planted bugs found | Found | Missed | Other findings | Touched answer key |',
-    '|---|---|---:|---|---|---:|---|',
+    '| Run | Variant | Planted bugs found | Found | Missed | Other findings | Decoy hits | Touched answer key |',
+    '|---|---|---:|---|---|---:|---|---|',
     ...rows,
   ].join('\n') + '\n';
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const dirs = process.argv.slice(2);
-  if (!dirs.length) { console.error('usage: node proof/score.js <workflow-run-dir> [...]'); process.exit(2); }
-  process.stdout.write(scoreTable(dirs.map(readProofRun)));
+  const args = process.argv.slice(2);
+  let key = KEY;
+  const k = args.indexOf('--key');
+  if (k >= 0) { key = loadKey(args[k + 1]); args.splice(k, 2); }
+  if (!args.length) { console.error('usage: node proof/score.js [--key <key.json>] <workflow-run-dir> [...]'); process.exit(2); }
+  process.stdout.write(scoreTable(args.map(readProofRun), key));
 }

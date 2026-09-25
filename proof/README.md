@@ -53,3 +53,19 @@ Claude Code loads agent definitions only when a session starts. The lean roles m
    The gap between the two plain runs is the noise floor.
 
 7. **Write it up** in `docs/proof/<date>-review.md`: both tables, the setup (CLI version, model, how many connectors and skills), the noise floor, and the limits. The claim is "on this workflow, with this setup".
+
+## Round 2: a harder target
+
+Round 1's target was too easy: both variants found all six bugs every time, so it couldn't show a quality difference. Its agents were also very short (about 2 turns each), which makes the token saving look bigger than it would be on longer work.
+
+`target-2/` is a larger library (10 files) with **11 subtler planted bugs** (`grading/key-2.json`) and **15 decoys**: correct functions that look suspicious, such as a documented in-place sort or a deliberate `== null`. `test/proof2.test.js` runs the library to prove each planted bug breaks its JSDoc and each decoy doesn't.
+
+Run it the same way, with `target-2` as the target and the round-2 key when scoring:
+
+```
+node proof/score.js --key proof/grading/key-2.json <runs...>
+```
+
+The score now also counts **decoy hits**: findings that flag correct code.
+
+`node proof/timing.js <runs...>` breaks each run down by stage (find, verify, report). It shows turns, model time per turn, tool time, output, and whether each agent's first turn found its start already cached. Use it to explain wall-clock differences.
