@@ -1,0 +1,15 @@
+{
+  "name": "lean-swarm",
+  "version": "0.1.0",
+  "description": "See where your Claude Code multi-agent runs spend tokens and time, and cut the biggest cause with lean agent roles",
+  "type": "module",
+  "bin": { "lean-swarm": "bin/lean-swarm.js" },
+  "files": ["bin/", "src/", "agents/", ".claude-plugin/", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test --experimental-test-coverage --test-coverage-include=src/** --test-coverage-include=bin/**",
+    "xray": "node bin/lean-swarm.js xray"
+  },
+  "keywords": ["claude-code", "subagents", "workflows", "tokens", "context"],
+  "license": "MIT"
+}

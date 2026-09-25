@@ -1,0 +1,15 @@
+{
+  "name": "lean-swarm",
+  "owner": { "name": "Itay Cohen" },
+  "metadata": {
+    "description": "Lean agent roles for Claude Code multi-agent runs"
+  },
+  "plugins": [
+    {
+      "name": "lean-swarm",
+      "source": "./",
+      "description": "Five agent roles that load only the tools they use: reader, researcher, coder, reviewer, judge.",
+      "version": "0.1.0"
+    }
+  ]
+}
