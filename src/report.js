@@ -110,7 +110,8 @@ export function markdown(s, opts = {}) {
 
   out.push('## What you could cut');
   out.push('Each lean role loads only the tools it lists, which also drops the skill listing and the deferred-tool listing. ' +
-    'The saving is re-read on every turn, so it counts once per turn. A range means the log does not hold the tool definitions.');
+    'The saving is re-read on every turn, so it counts once per turn. A range means the log does not hold the tool definitions.' +
+    (s.lean.floor > 0 ? ` The high end leaves out ${fmtTokens(s.lean.floor)}, what your agents that already have an allowlist still start with outside the log.` : ''));
   out.push(table(['Agent type', 'Agents', 'Fits role', 'Median start', 'Saved per turn', 'Tokens read saved'], s.agentTypes.slice(0, top).map(t => [
     t.type,
     String(t.agents),

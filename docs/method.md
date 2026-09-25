@@ -63,7 +63,8 @@ The Opus share of a run = turns on an Opus model ÷ all turns. The prototype cou
 - **Fitting a role:** each agent gets the leanest role whose tools cover every tool it called. The roles are in `src/roles.js`. StructuredOutput, SubagentHandback and ToolSearch don't count, because a role gets them anyway or doesn't need them. PowerShell counts as Bash.
 - **Saving per turn:** the skill listing and deferred-tool listing, plus the definitions of tools the role leaves out. Agents that already start without those listings already have a tools allowlist, so they save nothing.
   - Where the log holds tool definitions, this is exact, up to the character split.
-  - Where it doesn't, it's a range: the listings alone (low), up to the listings plus everything not in the log (high). The high end also includes the role's own few tool definitions, so the truth sits inside the range.
+  - Where it doesn't, it's a range. The low end is the listings alone. The high end is the listings plus everything not in the log, minus a floor: the median unlogged start of agents in your logs that already have an allowlist. Those agents show how much a lean agent still carries outside the log (its own few tool definitions and the like).
+  - On the test run, the default agent's range is 7.5k–39.8k per turn. A 2-tool agent in the same session measured 36.4k less than the default (45.1k vs 8.7k), which falls inside the range.
 - **Tokens read saved** = saving per turn × the agent's turns, because the start is re-read on every turn.
 
 ## Checked against the prototypes

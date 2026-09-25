@@ -49,14 +49,23 @@ export function toolTokens(first) {
   return Object.fromEntries(Object.entries(first.toolSizes).map(([n, c]) => [n, (first.tokens * c) / chars]));
 }
 
+// Agents that already have a tools allowlist start without the skill and deferred-tool listings.
+export const isAllowlisted = first => Boolean(first) && !first.toolSizes && !first.parts.skillListing && !first.parts.deferredTools;
+
+// What agents that already have an allowlist still start with outside the log (median): their own
+// few tool definitions and other unlogged content. A lean role keeps about that much.
+export function unloggedFloor(agents) {
+  return median(agents.map(a => a.firstTurn).filter(isAllowlisted).map(f => makeup(f).notInLog)) || 0;
+}
+
 // What a lean role would remove from this agent's start, per turn.
-// Exact when tool definitions are in the log; otherwise a low-high range.
-export function leanSaving(agent, called) {
+// Exact when tool definitions are in the log. Otherwise a range: the listings alone (low), up to the
+// listings plus everything not in the log except the floor a lean agent keeps (high).
+export function leanSaving(agent, called, floor = 0) {
   const role = fitRole(called);
   const first = agent.firstTurn;
   if (!role || !first) return { role: role && role.name, low: 0, high: 0 };
-  // Agents that already have a tools allowlist start without the skill and deferred-tool listings.
-  if (!first.parts.skillListing && !first.parts.deferredTools && !first.toolSizes) return { role: role.name, low: 0, high: 0 };
+  if (isAllowlisted(first)) return { role: role.name, low: 0, high: 0 };
   const mk = makeup(first);
   const listings = (mk.skillListing || 0) + (mk.deferredTools || 0);
   const tt = toolTokens(first);
@@ -65,7 +74,7 @@ export function leanSaving(agent, called) {
     const tools = Object.entries(tt).filter(([n]) => !keep.has(n)).reduce((a, [, v]) => a + v, 0);
     return { role: role.name, low: listings + tools, high: listings + tools };
   }
-  return { role: role.name, low: listings, high: listings + mk.notInLog };
+  return { role: role.name, low: listings, high: listings + Math.max(0, mk.notInLog - floor) };
 }
 
 export function agentStats(agent) {
@@ -181,6 +190,8 @@ export function summarize(parsedRuns) {
   const runs = parsedRuns.map(runStats);
   const all = runs.flatMap(r => r.agents);
   const parsedAgents = parsedRuns.flatMap(r => r.agents);
+  const floor = unloggedFloor(parsedAgents);
+  all.forEach((a, i) => { a.saving = leanSaving(parsedAgents[i], a.called, floor); });
 
   const tokens = zero();
   const cost = zero();
@@ -299,7 +310,7 @@ export function summarize(parsedRuns) {
     loadedKnownFor: agentsWithLoaded,
     neverCalled,
     agentTypes,
-    lean: { low: savedLow, high: savedHigh, lowShare: share(savedLow, read), highShare: share(savedHigh, read) },
+    lean: { low: savedLow, high: savedHigh, lowShare: share(savedLow, read), highShare: share(savedHigh, read), floor },
     toolErrors,
     versions: [...versions].sort(),
     skipped,

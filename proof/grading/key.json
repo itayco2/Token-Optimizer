@@ -1,0 +1,12 @@
+{
+  "note": "Answer key for the proof run. Agents are told to read only proof/target; score.js flags any run that touched this folder.",
+  "window": 3,
+  "bugs": [
+    { "id": "remove-missing-sku", "file": "src/cart.js", "line": 24, "summary": "removeItem splices index -1 when the sku is missing, removing the last line instead of doing nothing" },
+    { "id": "discount-subtracted", "file": "src/cart.js", "line": 36, "summary": "total subtracts the percentage as cents instead of applying a percentage discount" },
+    { "id": "sort-mutates", "file": "src/cart.js", "line": 43, "summary": "sortByPrice sorts the input in place instead of returning a new array" },
+    { "id": "page-off-by-one", "file": "src/pagination.js", "line": 11, "summary": "paginate treats page as 0-based: page 1 skips the first pageSize items" },
+    { "id": "path-traversal", "file": "src/receipts.js", "line": 11, "summary": "readReceipt never checks that name stays inside receiptsDir" },
+    { "id": "missing-await", "file": "src/orders.js", "line": 9, "summary": "saveOrder doesn't await db.write, so it resolves early and write failures escape the catch" }
+  ]
+}

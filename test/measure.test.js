@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { findRuns, parseAgent, readRun } from '../src/logs.js';
-import { agentStats, CHARS_PER_TOKEN, compare, leanSaving, makeup, median, runStats, summarize, toolTokens } from '../src/measure.js';
+import { agentStats, CHARS_PER_TOKEN, compare, leanSaving, makeup, median, runStats, summarize, toolTokens, unloggedFloor } from '../src/measure.js';
 import { A, AGENT_A, AGENT_B, FIXTURES, META_A, META_B } from './helpers.js';
 
 const close = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -83,11 +83,20 @@ test('leanSaving: nothing when no role fits or the agent is already lean', () =>
   assert.deepEqual(leanSaving(lean, new Set(['Read'])), { role: 'judge', low: 0, high: 0 });
 });
 
-test('leanSaving: a range when tool definitions are not logged', () => {
+test('leanSaving: a range when tool definitions are not logged, less the floor a lean agent keeps', () => {
   const agent = { firstTurn: { tokens: 10000, parts: { systemPrompt: 360, tools: 0, skillListing: 3600, deferredTools: 0 }, toolSizes: null } };
   const s = leanSaving(agent, new Set(['Read']));
   close(s.low, 1000);
   close(s.high, 1000 + (10000 - 1100));
+  close(leanSaving(agent, new Set(['Read']), 2000).high, 1000 + (10000 - 1100) - 2000);
+  assert.equal(leanSaving(agent, new Set(['Read']), 1e6).high, 1000);
+});
+
+test('unloggedFloor is the median unlogged start of agents that already have an allowlist', () => {
+  const lean = n => ({ firstTurn: { tokens: n, parts: { systemPrompt: 36, tools: 0, skillListing: 0, deferredTools: 0 }, toolSizes: null } });
+  const heavy = { firstTurn: { tokens: 50000, parts: { systemPrompt: 36, tools: 0, skillListing: 3600, deferredTools: 0 }, toolSizes: null } };
+  assert.equal(unloggedFloor([lean(3010), lean(5010), heavy, { firstTurn: null }]), 5000);
+  assert.equal(unloggedFloor([heavy]), 0);
 });
 
 test('runStats: duplicate reads across agents, Opus share, fixed share', () => {
@@ -120,6 +129,9 @@ test('summarize on the real fixtures', () => {
   assert.equal(def.medianFirstTurn, 45086);
   assert.equal(def.topRole.role, 'judge');
   assert.ok(def.medianSaving.low > 0 && def.medianSaving.high > def.medianSaving.low);
+  const allowlisted = s.runs.flatMap(r => r.agents).filter(a => a.saving.high === 0).length;
+  assert.equal(allowlisted, 3, 'statusline-setup and both claude-code-guide agents');
+  assert.ok(s.lean.floor > 3000 && s.lean.floor < 5000, `floor ${s.lean.floor}`);
   for (const type of ['statusline-setup', 'claude-code-guide']) {
     const t = s.agentTypes.find(x => x.type === type);
     assert.equal(t.savedRead.high, 0, `${type} already has a tools allowlist`);
